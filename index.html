@@ -49,24 +49,23 @@
         
         .cat-btn.active { background: rgba(0, 240, 255, 0.1); border-color: var(--tek-blue); color: var(--tek-blue); }
     </style>
-    <!-- ŁADOWANIE BAZY DANYCH Z PLIKU ZEWNĘTRZNEGO -->
     <script src="database.js"></script>
 </head>
 <body class="antialiased w-screen h-screen flex overflow-hidden selection:bg-cyan-500/30">
 
-<div id="app" v-cloak class="flex w-full h-full p-4 gap-5 max-w-[1920px] mx-auto">
+<!-- DODANO RESPANSYWNE PADDINGI I GAPY -->
+<div id="app" v-cloak class="flex flex-col md:flex-row w-full h-full p-3 md:p-4 gap-3 md:gap-5 max-w-[1920px] mx-auto">
     
     <!-- LEWY PANEL BOCZNY -->
-    <aside class="w-full md:w-[420px] lg:w-[440px] flex flex-col gap-4 h-full shrink-0 z-10">
+    <!-- Na mobile (poniżej md) ten panel znika, jeśli selectedDino JEST wybrane -->
+    <aside :class="['w-full md:w-[420px] lg:w-[440px] flex-col gap-4 h-full shrink-0 z-10', selectedDino ? 'hidden md:flex' : 'flex']">
         
         <div class="tek-border bg-[#111827] p-5 rounded-xl shrink-0 cursor-pointer hover:bg-[#111827]/80 transition-colors" @click="selectedDino = null">
             <h1 class="text-4xl font-black tek-glow mb-1 text-cyan-400">B2K<span class="text-white"> SHOP</span></h1>
             <p class="text-[11px] text-gray-400 font-medium">Witamy w naszym sklepie!<br>Wybierz okaz, dostosuj geny i skopiuj zamówienie.</p>
         </div>
 
-        <!-- Filtry -->
         <div class="tek-border bg-[#111827] p-4 rounded-xl shrink-0 space-y-4">
-            <!-- Kategorie -->
             <div class="flex flex-wrap gap-2">
                 <button @click="selectedCategory = 'all'" :class="['cat-btn px-2.5 py-1.5 rounded-lg border border-gray-700/50 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all', selectedCategory === 'all' ? 'active' : 'text-gray-400 hover:bg-gray-800 hover:text-white']">
                     <i data-lucide="layers" class="w-3.5 h-3.5"></i> Wszystkie
@@ -88,7 +87,6 @@
                 </button>
             </div>
 
-            <!-- Szukajka i Switch -->
             <div class="flex gap-4 items-center">
                 <div class="relative flex-1">
                     <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-cyan-500/50"></i>
@@ -107,14 +105,12 @@
                 </label>
             </div>
 
-            <!-- Filtry Dolne -->
             <div class="flex flex-col gap-3">
                 <div class="flex items-center gap-4">
                     <span class="text-[10px] text-gray-500 font-black uppercase tracking-widest shrink-0">Max Cena: <span class="text-cyan-400">{{ maxPriceFilter === 30000 ? 'Bez limitu' : maxPriceFilter + ' DD' }}</span></span>
                     <input type="range" v-model.number="maxPriceFilter" min="1000" max="30000" step="1000" class="custom-range flex-1">
                 </div>
                 
-                <!-- SORTOWANIE -->
                 <div class="flex gap-2 items-center border-t border-gray-800 pt-3">
                     <span class="text-[10px] text-gray-600 font-black uppercase tracking-widest">Sortuj:</span>
                     <button @click="toggleSort('name')" class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded transition-colors" :class="sortBy === 'name' ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50' : 'text-gray-500 hover:text-white'">
@@ -139,7 +135,6 @@
             </div>
         </div>
 
-        <!-- Lista Dinozaurow -->
         <div class="tek-border bg-[#111827] rounded-xl p-2.5 flex flex-col gap-2.5 overflow-y-auto flex-1 custom-scrollbar">
             <div v-if="filteredDatabase.length === 0" class="flex flex-col items-center justify-center h-full opacity-50">
                 <i data-lucide="search-X" class="w-10 h-10 mb-2"></i>
@@ -172,53 +167,59 @@
     </aside>
 
     <!-- PANEL GŁÓWNY -->
-    <main class="flex-1 flex flex-col h-full overflow-hidden relative z-0">
+    <!-- Na mobile (poniżej md) ten panel jest schowany, jeśli NIE wybrano dinozaura -->
+    <main :class="['flex-1 flex-col h-full overflow-hidden relative z-0', selectedDino ? 'flex' : 'hidden md:flex']">
         
-        <div v-if="selectedDino && selectedDino.baseLines" class="w-full h-full flex flex-col overflow-y-auto custom-scrollbar pr-3 pb-4">
+        <!-- PRZYCISK POWROTU NA MOBILE -->
+        <div v-if="selectedDino" class="md:hidden shrink-0 mb-3">
+            <button @click="selectedDino = null" class="w-full py-3 bg-[#111827] border border-cyan-500/30 rounded-xl text-cyan-400 font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(0,240,255,0.1)] active:scale-95 transition-transform">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Powrót do listy okazów
+            </button>
+        </div>
+
+        <!-- KONFIGURATOR DINOZAURA -->
+        <div v-if="selectedDino && selectedDino.baseLines" class="w-full flex-1 flex flex-col overflow-y-auto custom-scrollbar pr-1 md:pr-3 pb-4">
             
-            <!-- Nagłówek Dinozaura -->
             <div class="tek-border bg-[#111827] p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center md:items-end gap-5 shrink-0 mb-5 relative overflow-hidden">
                 <div class="absolute right-0 top-0 w-48 h-48 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
                 
                 <div class="flex items-center gap-6 relative z-10 w-full md:w-auto">
-                    <div class="w-28 h-28 bg-[#0a0e17] rounded-2xl border-2 border-cyan-500/30 flex items-center justify-center p-3 shadow-[0_0_20px_rgba(0,240,255,0.1)]">
+                    <div class="w-24 h-24 md:w-28 md:h-28 bg-[#0a0e17] rounded-2xl border-2 border-cyan-500/30 flex items-center justify-center p-3 shadow-[0_0_20px_rgba(0,240,255,0.1)] shrink-0">
                         <img :src="selectedDino.img" class="w-full h-full object-contain brightness-0 invert drop-shadow-[0_0_10px_rgba(0,240,255,0.4)]" onerror="this.src='https://placehold.co/150x150/transparent/fff?text=?'">
                     </div>
                     <div>
-                        <div class="flex items-center gap-2 mb-2">
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
                             <span class="px-2.5 py-1 bg-purple-900/40 border border-purple-500/50 text-purple-400 text-[11px] font-bold uppercase tracking-widest rounded">{{ selectedDino.variant }}</span>
                             <span class="px-2.5 py-1 bg-gray-800 border border-gray-600 text-gray-300 text-[11px] font-bold uppercase tracking-widest rounded flex items-center gap-1.5">
                                 <i :data-lucide="getCategoryIcon(selectedDino.category)" class="w-3.5 h-3.5"></i> {{ translateCat(selectedDino.category) }}
                             </span>
                         </div>
-                        <h2 class="text-4xl md:text-5xl font-black tracking-wider text-white uppercase">{{ selectedDino.name }}</h2>
+                        <h2 class="text-3xl md:text-5xl font-black tracking-wider text-white uppercase">{{ selectedDino.name }}</h2>
                     </div>
                 </div>
 
-                <div class="text-center md:text-right bg-[#0a0e17] p-4 rounded-xl border border-cyan-500/20 min-w-[160px] shadow-inner relative z-10">
+                <div class="w-full md:w-auto text-center md:text-right bg-[#0a0e17] p-4 rounded-xl border border-cyan-500/20 min-w-[160px] shadow-inner relative z-10 mt-2 md:mt-0">
                     <p class="text-[11px] text-gray-500 uppercase font-bold tracking-widest mb-1.5">Poziom Całkowity</p>
-                    <div class="text-5xl md:text-6xl font-black text-cyan-400 tek-glow leading-none">{{ totalLevel }}</div>
+                    <div class="text-4xl md:text-6xl font-black text-cyan-400 tek-glow leading-none">{{ totalLevel }}</div>
                 </div>
             </div>
 
-            <!-- Konfigurator -->
             <div class="flex flex-col xl:flex-row gap-5 flex-1">
                 
                 <div class="xl:w-[65%] flex flex-col gap-5">
-                    <!-- KROK 1 -->
-                    <div class="tek-border bg-[#111827] p-6 rounded-2xl shadow-lg">
-                        <h3 class="text-base text-white font-black uppercase tracking-widest mb-5 flex items-center gap-2.5 border-b border-gray-800 pb-3">
-                            <span class="w-7 h-7 rounded bg-cyan-900/50 border border-cyan-500/50 text-cyan-400 flex items-center justify-center text-xs font-black">1</span>
+                    <div class="tek-border bg-[#111827] p-5 md:p-6 rounded-2xl shadow-lg">
+                        <h3 class="text-sm md:text-base text-white font-black uppercase tracking-widest mb-5 flex items-center gap-2.5 border-b border-gray-800 pb-3">
+                            <span class="w-7 h-7 rounded bg-cyan-900/50 border border-cyan-500/50 text-cyan-400 flex items-center justify-center text-xs font-black shrink-0">1</span>
                             Wybierz Linię Bazową
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <button v-for="(line, index) in selectedDino.baseLines" :key="index" @click="selectBaseLine(line)"
-                                :class="['p-5 rounded-xl border text-left transition-all relative overflow-hidden', selectedLine?.name === line.name ? 'border-cyan-500 bg-[#0a0e17] shadow-[0_0_15px_rgba(0,240,255,0.15)]' : 'border-gray-700 bg-[#0a0e17]/50 hover:border-gray-500 hover:bg-[#0a0e17]/80']">
-                                <div class="font-black text-white text-lg tracking-wide mb-1.5">{{ line.name }}</div>
+                                :class="['p-4 md:p-5 rounded-xl border text-left transition-all relative overflow-hidden', selectedLine?.name === line.name ? 'border-cyan-500 bg-[#0a0e17] shadow-[0_0_15px_rgba(0,240,255,0.15)]' : 'border-gray-700 bg-[#0a0e17]/50 hover:border-gray-500 hover:bg-[#0a0e17]/80']">
+                                <div class="font-black text-white text-base md:text-lg tracking-wide mb-1.5">{{ line.name }}</div>
                                 <div class="flex justify-between items-center mt-4">
-                                    <span class="text-gray-500 text-[11px] font-black tracking-widest uppercase">Baza: <span class="text-white">{{ getCalculatedBaseLvl(line) }} LVL</span></span>
+                                    <span class="text-gray-500 text-[10px] md:text-[11px] font-black tracking-widest uppercase">Baza: <span class="text-white">{{ getCalculatedBaseLvl(line) }} LVL</span></span>
                                     
-                                    <span :class="getRelativePriceClass(getRelativeLinePrice(line))" class="text-[11px] font-black tracking-widest uppercase">
+                                    <span :class="getRelativePriceClass(getRelativeLinePrice(line))" class="text-[10px] md:text-[11px] font-black tracking-widest uppercase">
                                         {{ formatRelativePrice(getRelativeLinePrice(line)) }}
                                     </span>
                                 </div>
@@ -226,10 +227,9 @@
                         </div>
                     </div>
 
-                    <!-- KROK 2 -->
-                    <div v-if="hasAvailableMutations(selectedDino)" class="tek-border bg-[#111827] p-6 rounded-2xl flex-1 shadow-lg">
-                        <h3 class="text-base text-white font-black uppercase tracking-widest mb-5 flex items-center gap-2.5 border-b border-gray-800 pb-3">
-                            <span class="w-7 h-7 rounded bg-purple-900/50 border border-purple-500/50 text-purple-400 flex items-center justify-center text-xs font-black">2</span>
+                    <div v-if="hasAvailableMutations(selectedDino)" class="tek-border bg-[#111827] p-5 md:p-6 rounded-2xl flex-1 shadow-lg">
+                        <h3 class="text-sm md:text-base text-white font-black uppercase tracking-widest mb-5 flex items-center gap-2.5 border-b border-gray-800 pb-3">
+                            <span class="w-7 h-7 rounded bg-purple-900/50 border border-purple-500/50 text-purple-400 flex items-center justify-center text-xs font-black shrink-0">2</span>
                             Modyfikacja Genetyczna (Mutacje)
                         </h3>
                         
@@ -241,7 +241,7 @@
                                         <div class="w-7 h-7 rounded bg-gray-800/50 flex items-center justify-center border border-gray-700/50">
                                             <img :src="getStatImg(stat)" class="w-4 h-4 object-contain" alt="">
                                         </div>
-                                        <span class="text-sm font-black uppercase tracking-widest text-white">{{ translateStat(stat) }}</span>
+                                        <span class="text-xs md:text-sm font-black uppercase tracking-widest text-white">{{ translateStat(stat) }}</span>
                                     </div>
                                     <div class="text-[10px] font-black text-gray-500 uppercase tracking-widest bg-gray-900/50 px-2.5 py-1 rounded border border-gray-800">
                                         Baza: <span class="text-white text-xs">{{ selectedLine?.stats[stat] || 0 }}</span>
@@ -270,9 +270,8 @@
                     </div>
                 </div>
 
-                <!-- PRAWA STRONA -->
                 <div class="xl:w-[35%] flex flex-col gap-5">
-                    <div class="tek-border bg-gradient-to-b from-[#111827] to-[#0a0e17] p-6 rounded-2xl sticky top-0 flex flex-col h-full shadow-2xl">
+                    <div class="tek-border bg-gradient-to-b from-[#111827] to-[#0a0e17] p-5 md:p-6 rounded-2xl sticky top-0 flex flex-col h-full shadow-2xl">
                         
                         <div class="mb-5">
                             <div v-if="pricingStatus.type === 'fixed'" class="bg-[#111827] border border-emerald-500/30 p-4 rounded-xl flex flex-col items-center text-center shadow-[0_0_15px_rgba(16,185,129,0.05)]">
@@ -285,7 +284,6 @@
                             </div>
                         </div>
 
-                        <!-- TABELA STATYSTYK BAZA | MUT | SUMA -->
                         <h3 class="text-[11px] text-white font-black uppercase tracking-widest mb-3 border-b border-gray-800 pb-2">Finalne Statystyki</h3>
                         <div class="space-y-1.5 mb-5 bg-[#0a0e17] p-3 rounded-xl border border-gray-800/50">
                             <div v-for="stat in ['hp', 'stam', 'ox', 'food', 'weight', 'dmg']" :key="'final-'+stat" 
@@ -304,7 +302,6 @@
                             </div>
                         </div>
 
-                        <!-- TABELA KOSZTÓW -->
                         <div class="bg-[#0a0e17] rounded-xl p-4 border border-gray-800/50 mb-auto">
                             <div class="flex justify-between items-center" :class="{'mb-2.5': hasAvailableMutations(selectedDino) && totalMutations > 0}">
                                 <span class="text-gray-500 text-[10px] uppercase font-black tracking-widest">Linia</span>
@@ -318,20 +315,18 @@
                             </div>
                         </div>
 
-                        <!-- Do Zapłaty -->
                         <div class="pt-5 text-center mt-3 border-t border-gray-800">
                             <p class="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mb-1.5">Do zapłaty</p>
                             
                             <template v-if="pricingStatus.type === 'fixed'">
-                                <div class="text-5xl font-black text-cyan-400 tek-glow mb-4">{{ pricingStatus.exactPrice }} <span class="text-lg text-gray-500 font-bold">DD</span></div>
+                                <div class="text-5xl md:text-6xl font-black text-cyan-400 tek-glow mb-4">{{ pricingStatus.exactPrice }} <span class="text-lg text-gray-500 font-bold">DD</span></div>
                             </template>
                             
-                            <!-- PODŁĄCZENIE API -->
                             <template v-else>
                                 <div v-if="apiPrice.loading" class="text-2xl font-black text-amber-400/50 mb-5 animate-pulse pt-2">Liczę . . .</div>
                                 <div v-else class="relative">
                                     <div class="text-base font-black text-gray-400 mb-1">Min. <span class="text-white">{{ apiPrice.min }} DD</span></div>
-                                    <div class="text-4xl font-black text-amber-400 tek-glow mb-3 shadow-amber-500">{{ apiPrice.sug }} <span class="text-sm text-gray-500 font-bold">DD</span></div>
+                                    <div class="text-4xl md:text-5xl font-black text-amber-400 tek-glow mb-3 shadow-amber-500">{{ apiPrice.sug }} <span class="text-sm text-gray-500 font-bold">DD</span></div>
                                     
                                     <div class="bg-amber-900/20 border border-amber-500/30 p-2.5 rounded-lg mb-4 text-left flex items-start gap-2 shadow-[0_0_10px_rgba(245,158,11,0.05)]">
                                         <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"></i>
@@ -360,8 +355,8 @@
             <p class="text-sm text-gray-400">Ten dinozaur został wczytany, ale nie wygenerowano dla niego linii bazowych w database.js.</p>
         </div>
         
-        <!-- Ekran Powitalny -->
-        <div v-else class="w-full h-full flex flex-col items-center justify-center p-6 text-center relative">
+        <!-- Ekran Powitalny (Widoczny tylko na desktopie) -->
+        <div v-else class="w-full h-full hidden md:flex flex-col items-center justify-center p-6 text-center relative">
             <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/10 via-[#0a0e17] to-[#0a0e17] pointer-events-none"></div>
             <div class="max-w-2xl relative z-10">
                 <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mx-auto mb-6 shadow-[0_0_40px_rgba(0,240,255,0.2)] rotate-3">
