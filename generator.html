@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B2K Shop | Generator Bazy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Rajdhani', sans-serif; background-color: #0a0e17; color: #e2e8f0; }
+        .tek-border { border: 1px solid rgba(0, 240, 255, 0.2); box-shadow: 0 0 10px rgba(0, 240, 255, 0.05) inset; }
+        .tek-glow { text-shadow: 0 0 8px rgba(0, 240, 255, 0.6); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.3); border-radius: 4px; }
+        input, select { background: #0a0e17; border: 1px solid #374151; padding: 0.35rem 0.75rem; border-radius: 0.375rem; color: white; width: 100%; outline: none; transition: border-color 0.2s; font-family: monospace; font-size: 0.9rem; }
+        input:focus, select:focus { border-color: #00f0ff; }
+        input[readonly] { background: #111827; border-color: #1f2937; color: #9ca3af; cursor: not-allowed; }
+    </style>
+    <script src="database.js"></script>
+</head>
+<body class="antialiased w-screen h-screen flex overflow-hidden selection:bg-cyan-500/30">
+
+<div id="app" v-cloak class="flex w-full h-full p-5 gap-6 max-w-[1920px] mx-auto">
+    <aside class="w-full md:w-[420px] lg:w-[450px] flex flex-col gap-5 h-full shrink-0 z-10">
+        <div class="tek-border bg-[#111827] p-6 rounded-xl text-center shadow-lg shrink-0">
+            <h1 class="text-4xl font-black tek-glow mb-1 text-cyan-400">PANEL ADMINA</h1>
+            <p class="text-sm text-gray-400 uppercase tracking-widest font-bold">Edytor database.js</p>
+        </div>
+
+        <div class="tek-border bg-[#111827] p-5 rounded-xl shrink-0">
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-3 w-5 h-5 text-cyan-500/50"></i>
+                <input v-model="searchQuery" type="text" placeholder="Szukaj dinozaura..." class="pl-10 py-2.5 bg-[#0a0e17] border-cyan-500/30 font-sans text-sm">
+            </div>
+            <button @click="exportDatabase" class="w-full mt-5 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] text-sm">
+                <i data-lucide="download" class="w-5 h-5"></i> Zapisz i Pobierz
+            </button>
+        </div>
+
+        <div class="tek-border bg-[#111827] rounded-xl p-3 flex flex-col gap-3 overflow-y-auto flex-1 custom-scrollbar">
+            <button v-for="dino in filteredDinos" :key="dino.id" @click="selectDino(dino)"
+                :class="['p-4 rounded-xl flex items-center gap-4 transition-all border text-left', selectedDino?.id === dino.id ? 'border-cyan-500 bg-[#0a0e17] shadow-[0_0_15px_rgba(0,240,255,0.1)] scale-[1.02]' : 'border-transparent bg-gray-800/20 hover:bg-gray-800/60']">
+                <div class="flex-1 min-w-0">
+                    <div class="text-base font-black text-white truncate flex items-center justify-between">
+                        {{ dino.name }}
+                        <span v-if="dino.baseLines && dino.baseLines.length > 0" class="text-[10px] bg-emerald-900/50 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">SKONFIGUROWANY</span>
+                    </div>
+                    <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{{ dino.variant }}</div>
+                </div>
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden tek-border bg-[#111827] rounded-xl relative shadow-2xl z-0">
+        <div v-if="selectedDino" class="w-full h-full flex flex-col overflow-y-auto custom-scrollbar p-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-gray-800 pb-6 gap-4">
+                <div>
+                    <h2 class="text-5xl font-black text-white uppercase">{{ selectedDino.name }}</h2>
+                    <span class="text-base font-bold text-purple-400 uppercase tracking-widest mt-1 block">{{ selectedDino.variant }}</span>
+                </div>
+                <div class="flex items-center gap-4 bg-[#0a0e17] p-4 rounded-xl border border-gray-800">
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-500 uppercase font-black tracking-widest mb-1.5">Cena Bazy Gatunku (DD)</label>
+                        <input type="number" v-model.number="selectedDino.baseCost" class="w-40 text-xl font-black text-cyan-400 border-cyan-500/50 py-2">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-2xl font-black text-white uppercase tracking-widest">Linie Genetyczne</h3>
+                <button @click="addBaseLine" class="bg-cyan-900/30 border border-cyan-500 text-cyan-400 px-5 py-2.5 rounded-lg text-sm font-black uppercase tracking-widest hover:bg-cyan-500 hover:text-black transition-colors flex items-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Dodaj Linię
+                </button>
+            </div>
+
+            <div v-if="!selectedDino.baseLines || selectedDino.baseLines.length === 0" class="bg-gray-800/20 border border-dashed border-gray-700 rounded-xl p-10 text-center text-gray-500 mb-8 text-lg font-medium">
+                Brak skofigurowanych linii. Ten dinozaur nie będzie gotowy do sprzedaży z poziomu sklepu.
+            </div>
+
+            <div v-for="(line, lIndex) in selectedDino.baseLines" :key="lIndex" class="bg-[#0a0e17] border border-gray-800 rounded-xl p-6 mb-8 relative shadow-inner">
+                <button @click="removeBaseLine(lIndex)" class="absolute top-5 right-5 text-gray-500 hover:text-red-500 transition-colors" title="Usuń linię">
+                    <i data-lucide="trash-2" class="w-6 h-6"></i>
+                </button>
+
+                <div class="grid grid-cols-2 gap-6 mb-6 pr-14">
+                    <div>
+                        <label class="text-xs text-gray-500 uppercase font-black tracking-widest mb-1.5 block">Nazwa Linii</label>
+                        <input type="text" v-model="line.name" class="font-sans text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 uppercase font-black tracking-widest mb-1.5 block flex items-center gap-1.5">
+                            <i data-lucide="calculator" class="w-3.5 h-3.5 text-cyan-500"></i> LVL Startowy (Liczony Auto)
+                        </label>
+                        <div class="text-cyan-400 font-bold text-sm h-10 flex items-center bg-[#111827] px-3 rounded-lg border border-gray-700">
+                            {{ getCalculatedBaseLvl(line) }} LVL
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-4 mb-8 shadow-inner">
+                    <label class="text-xs text-cyan-500 uppercase font-black tracking-widest mb-3 block border-b border-gray-800 pb-2">Statystyki BAZOWE Linii (przed mutacjami)</label>
+                    <div class="grid grid-cols-6 gap-3">
+                        <div v-for="stat in ['hp', 'stam', 'ox', 'food', 'weight', 'dmg']" :key="stat">
+                            <label class="text-[11px] text-gray-400 uppercase font-black block text-center mb-1.5">{{ stat }}</label>
+                            <input type="number" v-model.number="line.stats[stat]" class="text-center text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-800 pt-5">
+                    <h4 class="text-base font-black text-purple-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i data-lucide="tag" class="w-5 h-5"></i> Zapisane Wyceny (customVariants)
+                    </h4>
+                    
+                    <div class="space-y-3 mb-5">
+                        <div v-for="(price, key) in line.customVariants" :key="key" class="flex flex-col bg-[#111827] border border-gray-700 rounded-xl overflow-hidden">
+                            <div class="flex items-center gap-4 p-4 border-b border-gray-800">
+                                <div class="flex gap-2 font-mono text-xs">
+                                    <template v-for="(val, vIdx) in key.split('-')" :key="vIdx">
+                                        <span class="bg-gray-800 px-2 py-1 rounded text-gray-300 w-10 text-center" :title="['HP','STAM','OX','FOOD','WAGA','DMG'][vIdx]">
+                                            <span class="text-[9px] block text-gray-500 mb-0.5 font-black">{{ ['HP','STAM','OX','FOOD','WAGA','DMG'][vIdx] }}</span>
+                                            {{ val }}
+                                        </span>
+                                    </template>
+                                </div>
+                                <div class="flex-1 text-right flex items-center justify-end gap-3">
+                                    <label class="text-xs text-gray-500 uppercase font-black">Cena Finalna (DD):</label>
+                                    <input type="number" v-model.number="line.customVariants[key]" class="w-32 text-right text-amber-400 font-bold bg-black text-base py-1.5">
+                                    <button @click="removeCustomVariant(line, key)" class="text-gray-600 hover:text-red-500 px-2 transition-colors">
+                                        <i data-lucide="trash" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="bg-black/40 p-3 flex items-center justify-between">
+                                <button @click="checkSavedVariantApi(selectedDino, line, lIndex, key)" class="text-[11px] bg-cyan-900/50 border border-cyan-500/50 text-cyan-400 px-3 py-1.5 rounded hover:bg-cyan-500 hover:text-black font-black uppercase tracking-widest transition-colors flex items-center gap-1.5">
+                                    <i data-lucide="calculator" class="w-3.5 h-3.5"></i> Sprawdź kalkulator
+                                </button>
+                                <div class="text-xs font-mono flex items-center gap-3">
+                                    <span v-if="savedApiResults[lIndex + '_' + key]?.loading" class="animate-pulse text-amber-400 font-sans font-bold">Łączę z serwerem...</span>
+                                    <span v-else-if="savedApiResults[lIndex + '_' + key]?.min" class="flex items-center gap-3">
+                                        <span class="text-gray-500 font-sans font-bold">Wycena systemu - Min: <span class="text-white">{{savedApiResults[lIndex + '_' + key].min}}</span> | Sug: <span class="text-amber-400">{{savedApiResults[lIndex + '_' + key].sug}}</span></span>
+                                        
+                                        <span v-if="line.customVariants[key] >= savedApiResults[lIndex + '_' + key].min" class="px-2 py-1 bg-green-900/50 text-green-400 rounded border border-green-500/50 font-sans font-black tracking-widest flex items-center gap-1.5">
+                                            <i data-lucide="check-circle-2" class="w-4 h-4"></i> OK
+                                        </span>
+                                        <span v-else class="px-2 py-1 bg-red-900/50 text-red-400 rounded border border-red-500/50 font-sans font-black tracking-widest animate-pulse flex items-center gap-1.5">
+                                            <i data-lucide="alert-circle" class="w-4 h-4"></i> ZA MAŁO
+                                        </span>
+                                    </span>
+                                    <span v-else class="opacity-40 font-sans font-bold text-gray-500">Kliknij przycisk po lewej, by audytować cenę</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-purple-900/10 border border-purple-500/30 p-4 rounded-xl flex flex-col gap-4 mt-2">
+                        <div class="flex items-end gap-4 w-full">
+                            <div class="flex gap-2">
+                                <div v-for="stat in ['hp', 'stam', 'ox', 'food', 'weight', 'dmg']" :key="stat">
+                                    <label class="text-[11px] text-purple-400 uppercase font-black block text-center mb-1.5">{{ stat }}</label>
+                                    <select v-model.number="getVariantForm(lIndex)[stat]" class="w-14 text-center text-sm bg-black border-gray-700 rounded text-white p-1.5 outline-none font-mono">
+                                        <option :value="0">0</option>
+                                        <option :value="98">98</option>
+                                        <option :value="255">255</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-center justify-center bg-black/40 border border-gray-700/50 p-2 rounded-lg flex-1">
+                                <button @click="checkNewVariantApi(selectedDino, line, lIndex)" class="text-xs bg-purple-900/50 text-purple-400 px-3 py-1.5 rounded hover:bg-purple-500 hover:text-white font-black uppercase tracking-widest transition-colors w-full mb-1.5">
+                                    Podpowiedz Cenę
+                                </button>
+                                <div class="text-xs text-gray-400 font-mono text-center h-[18px]">
+                                    <span v-if="newVariantApiResults[lIndex]?.loading" class="animate-pulse text-amber-400">Łączę...</span>
+                                    <span v-else-if="newVariantApiResults[lIndex]?.min">
+                                        Min: <span class="text-white">{{newVariantApiResults[lIndex].min}}</span> | Sug: <span class="text-amber-400 font-bold">{{newVariantApiResults[lIndex].sug}}</span>
+                                    </span>
+                                    <span v-else class="opacity-50 font-sans">Brak podpowiedzi</span>
+                                </div>
+                            </div>
+                            <div class="flex items-end gap-3 shrink-0">
+                                <div>
+                                    <label class="text-[11px] text-amber-500 uppercase font-black block text-center mb-1.5">Ustal Cenę (DD)</label>
+                                    <input type="number" v-model.number="getVariantForm(lIndex).price" class="w-28 text-center text-base font-bold bg-black text-amber-400 border-amber-500/50 py-1.5">
+                                </div>
+                                <button @click="addCustomVariant(line, lIndex)" class="bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-lg text-sm font-black uppercase tracking-widest h-[38px] transition-colors shadow-lg">
+                                    Dodaj
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div v-else class="w-full h-full flex flex-col items-center justify-center text-gray-500">
+            <i data-lucide="mouse-pointer-click" class="w-20 h-20 mb-5 opacity-40"></i>
+            <h2 class="text-3xl font-black uppercase tracking-widest text-gray-400">Wybierz Dinozaura</h2>
+            <p class="text-base mt-2">Kliknij na okaz z lewego panelu, aby rozpocząć edycję.</p>
+        </div>
+    </main>
+</div>
+
+<script>
+    const { createApp, ref, computed, nextTick, watchEffect } = Vue;
+
+    createApp({
+        setup() {
+            const db = ref(typeof DINO_DATABASE !== 'undefined' ? JSON.parse(JSON.stringify(DINO_DATABASE)) : []);
+            const selectedDino = ref(null);
+            const searchQuery = ref('');
+            
+            const variantForms = ref({});
+            const newVariantApiResults = ref({});
+            const savedApiResults = ref({});
+
+            const filteredDinos = computed(() => {
+                return db.value.filter(d => 
+                    d.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
+                    (d.variant && d.variant.toLowerCase().includes(searchQuery.value.toLowerCase()))
+                );
+            });
+
+            const selectDino = (dino) => {
+                if (!dino.baseLines) dino.baseLines = [];
+                selectedDino.value = dino;
+            };
+
+            const getCalculatedBaseLvl = (line) => {
+                if(!line || !line.stats) return 1;
+                const s = line.stats;
+                return 1 + (s.hp||0) + (s.stam||0) + (s.ox||0) + (s.food||0) + (s.weight||0) + (s.dmg||0);
+            };
+
+            const addBaseLine = () => {
+                selectedDino.value.baseLines.push({
+                    name: "Nowa Linia",
+                    stats: { hp: 0, stam: 0, ox: 0, food: 0, weight: 0, dmg: 0 },
+                    customVariants: { "0-0-0-0-0-0": selectedDino.value.baseCost }
+                });
+            };
+
+            const removeBaseLine = (index) => {
+                if(confirm("Na pewno usunąć tę linię bazową?")) selectedDino.value.baseLines.splice(index, 1);
+            };
+
+            const getVariantForm = (lineIndex) => {
+                if (!variantForms.value[lineIndex]) {
+                    variantForms.value[lineIndex] = { hp: 0, stam: 0, ox: 0, food: 0, weight: 0, dmg: 0, price: selectedDino.value.baseCost };
+                }
+                return variantForms.value[lineIndex];
+            };
+
+            const addCustomVariant = (line, lineIndex) => {
+                const form = getVariantForm(lineIndex);
+                const key = `${form.hp}-${form.stam}-${form.ox}-${form.food}-${form.weight}-${form.dmg}`;
+                if (!line.customVariants) line.customVariants = {};
+                line.customVariants[key] = form.price;
+                variantForms.value[lineIndex] = { hp: 0, stam: 0, ox: 0, food: 0, weight: 0, dmg: 0, price: selectedDino.value.baseCost };
+                newVariantApiResults.value[lineIndex] = null;
+            };
+
+            const removeCustomVariant = (line, key) => delete line.customVariants[key];
+
+            const fetchApi = async (dino, line, mutations) => {
+                const totalMuts = mutations.hp + mutations.stam + mutations.ox + mutations.food + mutations.weight + mutations.dmg;
+                const baseLvl = getCalculatedBaseLvl(line);
+                const totalLevel = baseLvl + totalMuts;
+                
+                const basePrice = line.customVariants?.['0-0-0-0-0-0'] ?? dino.baseCost;
+
+                const payloadObj = {
+                    dino_price_shop: String(basePrice),
+                    dino_lvl: String(totalLevel),
+                    dino_traits_1: String(mutations.hp || 0),
+                    dino_traits_2: String(mutations.stam || 0),
+                    dino_traits_3: String(mutations.food || 0),
+                    dino_traits_4: String(mutations.weight || 0),
+                    dino_traits_5: String(mutations.dmg || 0),
+                    dino_traits_6: String(mutations.ox || 0),
+                    dino_price_min: "Liczę . . .",
+                    dino_price_sugested: "Liczę . . ."
+                };
+
+                const params = new URLSearchParams();
+                params.append('arksa_calc', JSON.stringify(payloadObj));
+
+                const res = await fetch("https://green-wildflower-8204.rypnickipiotr.workers.dev/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+                    body: params.toString()
+                });
+
+                const rawText = await res.text();
+                let data = JSON.parse(rawText);
+                if (typeof data === 'string') data = JSON.parse(data);
+                
+                return { min: data.dino_price_min, sug: data.dino_price_sugested };
+            };
+
+            const checkNewVariantApi = async (dino, line, lineIndex) => {
+                const form = getVariantForm(lineIndex);
+                if (!newVariantApiResults.value[lineIndex]) newVariantApiResults.value[lineIndex] = { min: 0, sug: 0, loading: true };
+                else newVariantApiResults.value[lineIndex].loading = true;
+
+                try {
+                    const data = await fetchApi(dino, line, form);
+                    newVariantApiResults.value[lineIndex].min = data.min;
+                    newVariantApiResults.value[lineIndex].sug = data.sug;
+                    if (form.price === dino.baseCost || form.price === 0) {
+                        const suggestedInt = parseInt(data.sug);
+                        if (!isNaN(suggestedInt)) form.price = suggestedInt;
+                    }
+                } catch(e) {
+                    newVariantApiResults.value[lineIndex].min = "Błąd";
+                    newVariantApiResults.value[lineIndex].sug = "Błąd";
+                } finally {
+                    newVariantApiResults.value[lineIndex].loading = false;
+                }
+            };
+
+            const checkSavedVariantApi = async (dino, line, lineIndex, variantKey) => {
+                const parts = variantKey.split('-');
+                const m = { hp: parseInt(parts[0])||0, stam: parseInt(parts[1])||0, ox: parseInt(parts[2])||0, food: parseInt(parts[3])||0, weight: parseInt(parts[4])||0, dmg: parseInt(parts[5])||0 };
+                const cacheKey = `${lineIndex}_${variantKey}`;
+
+                if (!savedApiResults.value[cacheKey]) savedApiResults.value[cacheKey] = { min: 0, sug: 0, loading: true };
+                else savedApiResults.value[cacheKey].loading = true;
+
+                try {
+                    const data = await fetchApi(dino, line, m);
+                    savedApiResults.value[cacheKey].min = data.min;
+                    savedApiResults.value[cacheKey].sug = data.sug;
+                } catch(e) {
+                    savedApiResults.value[cacheKey].min = "Błąd";
+                    savedApiResults.value[cacheKey].sug = "Błąd";
+                } finally {
+                    savedApiResults.value[cacheKey].loading = false;
+                }
+            };
+
+            const exportDatabase = () => {
+                // Czyścimy zbędne klucze (np. usunięte z obiektu priceMod czy baseLvl)
+                const cleanDb = JSON.parse(JSON.stringify(db.value));
+                cleanDb.forEach(dino => {
+                    if (dino.baseLines) {
+                        dino.baseLines.forEach(line => {
+                            delete line.baseLvl; // Usunięte, bo liczymy je auto!
+                            delete line.priceMod; // Usunięte, bo cena jest z customVariants!
+                        });
+                    }
+                });
+
+                const jsContent = `// Plik bazy danych B2K Shop\n// Wygenerowano automatycznie z Panelu Admina\n\nconst DINO_DATABASE = ${JSON.stringify(cleanDb, null, 4)};`;
+                const blob = new Blob([jsContent], { type: "text/javascript;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "database.js";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            watchEffect(() => { if (typeof lucide !== 'undefined') nextTick(() => lucide.createIcons()); });
+
+            return {
+                db, filteredDinos, selectedDino, searchQuery, variantForms, newVariantApiResults, savedApiResults,
+                selectDino, addBaseLine, removeBaseLine, getVariantForm, addCustomVariant, removeCustomVariant, 
+                checkNewVariantApi, checkSavedVariantApi, getCalculatedBaseLvl, exportDatabase
+            };
+        },
+        updated() { if (typeof lucide !== 'undefined') lucide.createIcons(); },
+        mounted() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
+    }).mount('#app');
+</script>
+</body>
+</html>

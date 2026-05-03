@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B2K Shop | ARK Dinosaur Selector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --tek-blue: #00f0ff;
+            --tek-purple: #b026ff;
+            --tek-dark: #0a0e17;
+            --tek-panel: #111827;
+        }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--tek-dark);
+            color: #e2e8f0;
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .tek-border {
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.05) inset;
+        }
+        .tek-glow { text-shadow: 0 0 10px rgba(0, 240, 255, 0.5); }
+        
+        .btn-mutation { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-mutation.active {
+            background-color: rgba(0, 240, 255, 0.15);
+            border-color: var(--tek-blue);
+            color: var(--tek-blue);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            transform: scale(1.02);
+        }
+        
+        .custom-range { -webkit-appearance: none; width: 100%; height: 4px; background: rgba(0, 240, 255, 0.2); border-radius: 5px; outline: none; }
+        .custom-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--tek-blue); cursor: pointer; box-shadow: 0 0 10px rgba(0, 240, 255, 0.5); }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.2); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 240, 255, 0.5); }
+        
+        .cat-btn.active { background: rgba(0, 240, 255, 0.1); border-color: var(--tek-blue); color: var(--tek-blue); }
+    </style>
+    <!-- ŁADOWANIE BAZY DANYCH Z PLIKU ZEWNĘTRZNEGO -->
+    <script src="database.js"></script>
+</head>
+<body class="antialiased w-screen h-screen flex overflow-hidden selection:bg-cyan-500/30">
+
+<div id="app" v-cloak class="flex w-full h-full p-4 gap-5 max-w-[1920px] mx-auto">
+    
+    <!-- LEWY PANEL BOCZNY -->
+    <aside class="w-full md:w-[420px] lg:w-[440px] flex flex-col gap-4 h-full shrink-0 z-10">
+        
+        <div class="tek-border bg-[#111827] p-5 rounded-xl shrink-0 cursor-pointer hover:bg-[#111827]/80 transition-colors" @click="selectedDino = null">
+            <h1 class="text-4xl font-black tek-glow mb-1 text-cyan-400">B2K<span class="text-white"> SHOP</span></h1>
+            <p class="text-[11px] text-gray-400 font-medium">Witamy w naszym sklepie!<br>Wybierz okaz, dostosuj geny i skopiuj zamówienie.</p>
+        </div>
+
+        <!-- Filtry -->
+        <div class="tek-border bg-[#111827] p-4 rounded-xl shrink-0 space-y-4">
+            <!-- Kategorie -->
+            <div class="flex flex-wrap gap-2">
+                <button @click="selectedCategory = 'all'" :class="['cat-btn px-2.5 py-1.5 rounded-lg border border-gray-700/50 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all', selectedCategory === 'all' ? 'active' : 'text-gray-400 hover:bg-gray-800 hover:text-white']">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i> Wszystkie
+                </button>
+                <button @click="selectedCategory = 'bojowe'" :class="['cat-btn px-2.5 py-1.5 rounded-lg border border-gray-700/50 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all', selectedCategory === 'bojowe' ? 'active' : 'text-gray-400 hover:bg-gray-800 hover:text-white']">
+                    <i data-lucide="swords" class="w-3.5 h-3.5"></i> Bojowe
+                </button>
+                <button @click="selectedCategory = 'uzytkowe'" :class="['cat-btn px-2.5 py-1.5 rounded-lg border border-gray-700/50 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all', selectedCategory === 'uzytkowe' ? 'active' : 'text-gray-400 hover:bg-gray-800 hover:text-white']">
+                    <i data-lucide="pickaxe" class="w-3.5 h-3.5"></i> Użytkowe
+                </button>
+                <button @click="selectedCategory = 'latajace'" :class="['cat-btn px-2.5 py-1.5 rounded-lg border border-gray-700/50 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all', selectedCategory === 'latajace' ? 'active' : 'text-gray-400 hover:bg-gray-800 hover:text-white']">
+                    <i data-lucide="wind" class="w-3.5 h-3.5"></i> Latające
+                </button>
+                <button @click="selectedCategory = 'wodne'" :class="['cat-btn px-2.5 py-1.5 rounded-lg border border-gray-700/50 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all', selectedCategory === 'wodne' ? 'active' : 'text-gray-400 hover:bg-gray-800 hover:text-white']">
+                    <i data-lucide="waves" class="w-3.5 h-3.5"></i> Wodne
+                </button>
+                <button @click="selectedCategory = 'towarzysze'" :class="['cat-btn px-2.5 py-1.5 rounded-lg border border-gray-700/50 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all', selectedCategory === 'towarzysze' ? 'active' : 'text-gray-400 hover:bg-gray-800 hover:text-white']">
+                    <i data-lucide="heart" class="w-3.5 h-3.5"></i> Pety
+                </button>
+            </div>
+
+            <!-- Szukajka i Switch -->
+            <div class="flex gap-4 items-center">
+                <div class="relative flex-1">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-cyan-500/50"></i>
+                    <input v-model="searchQuery" type="text" placeholder="Szukaj okazu..." class="w-full bg-[#0a0e17] border border-cyan-500/20 rounded-lg py-2 pl-9 pr-8 text-xs text-white focus:outline-none focus:border-cyan-500 transition-all">
+                    <button v-show="searchQuery.length > 0" @click="searchQuery = ''" class="absolute right-2 top-2 text-gray-500 hover:text-white transition-colors focus:outline-none p-0.5">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer group shrink-0">
+                    <div class="relative">
+                        <input type="checkbox" v-model="showOnlyMutated" class="sr-only">
+                        <div class="block bg-[#0a0e17] border border-gray-700 w-9 h-5 rounded-full transition-colors group-hover:border-purple-500" :class="{'bg-purple-900/30 border-purple-500': showOnlyMutated}"></div>
+                        <div class="dot absolute left-1 top-1 bg-gray-500 w-3 h-3 rounded-full transition-transform" :class="{'translate-x-4 bg-purple-400': showOnlyMutated}"></div>
+                    </div>
+                    <span class="text-[10px] font-black uppercase text-purple-400 tracking-widest">Tylko Mutowane</span>
+                </label>
+            </div>
+
+            <!-- Filtry Dolne -->
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center gap-4">
+                    <span class="text-[10px] text-gray-500 font-black uppercase tracking-widest shrink-0">Max Cena: <span class="text-cyan-400">{{ maxPriceFilter === 30000 ? 'Bez limitu' : maxPriceFilter + ' DD' }}</span></span>
+                    <input type="range" v-model.number="maxPriceFilter" min="1000" max="30000" step="1000" class="custom-range flex-1">
+                </div>
+                
+                <!-- SORTOWANIE -->
+                <div class="flex gap-2 items-center border-t border-gray-800 pt-3">
+                    <span class="text-[10px] text-gray-600 font-black uppercase tracking-widest">Sortuj:</span>
+                    <button @click="toggleSort('name')" class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded transition-colors" :class="sortBy === 'name' ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50' : 'text-gray-500 hover:text-white'">
+                        Nazwa 
+                        <svg v-if="sortBy === 'name' && sortDesc" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <svg v-else-if="sortBy === 'name' && !sortDesc" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                        <svg v-else class="w-3.5 h-3.5 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                    </button>
+                    <button @click="toggleSort('level')" class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded transition-colors" :class="sortBy === 'level' ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50' : 'text-gray-500 hover:text-white'">
+                        Level 
+                        <svg v-if="sortBy === 'level' && sortDesc" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <svg v-else-if="sortBy === 'level' && !sortDesc" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                        <svg v-else class="w-3.5 h-3.5 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                    </button>
+                    <button @click="toggleSort('price')" class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded transition-colors" :class="sortBy === 'price' ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/50' : 'text-gray-500 hover:text-white'">
+                        Cena 
+                        <svg v-if="sortBy === 'price' && sortDesc" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <svg v-else-if="sortBy === 'price' && !sortDesc" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                        <svg v-else class="w-3.5 h-3.5 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista Dinozaurow -->
+        <div class="tek-border bg-[#111827] rounded-xl p-2.5 flex flex-col gap-2.5 overflow-y-auto flex-1 custom-scrollbar">
+            <div v-if="filteredDatabase.length === 0" class="flex flex-col items-center justify-center h-full opacity-50">
+                <i data-lucide="search-X" class="w-10 h-10 mb-2"></i>
+                <p class="text-[11px] font-black uppercase tracking-widest">Brak Okazów</p>
+            </div>
+
+            <button v-for="dino in filteredDatabase" :key="dino.id" @click="selectDino(dino)"
+                :class="['p-3 rounded-xl flex items-center gap-4 transition-all border text-left', selectedDino?.id === dino.id ? 'border-cyan-500 bg-[#0a0e17] shadow-[0_0_15px_rgba(0,240,255,0.1)] scale-[1.01]' : 'border-transparent bg-gray-800/20 hover:bg-gray-800/60 hover:border-gray-600']">
+                
+                <div class="w-14 h-14 rounded-lg bg-[#0a0e17] border border-cyan-500/30 flex-shrink-0 flex items-center justify-center p-1.5 relative shadow-inner">
+                    <img :src="dino.img" class="w-full h-full object-contain brightness-0 invert drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" onerror="this.src='https://placehold.co/100x100/transparent/fff?text=?'">
+                    
+                    <div v-if="hasAvailableMutations(dino)" class="absolute -top-1.5 -right-1.5 bg-purple-600 text-white w-4 h-4 rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(176,38,255,0.5)] border border-purple-400">
+                        <i data-lucide="dna" class="w-2.5 h-2.5"></i>
+                    </div>
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <div class="text-base font-black text-white truncate">{{ dino.name }}</div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[9px] font-black text-purple-400 uppercase tracking-widest bg-purple-900/30 border border-purple-500/20 px-1.5 py-0.5 rounded">{{ dino.variant }}</span>
+                        <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                            <i :data-lucide="getCategoryIcon(dino.category)" class="w-2.5 h-2.5"></i> {{ translateCat(dino.category) }}
+                        </span>
+                    </div>
+                    <div class="text-[11px] text-gray-500 mt-1.5 font-bold uppercase tracking-widest">Cena od: <span class="text-cyan-400">{{ getMinPrice(dino) }} DD</span></div>
+                </div>
+            </button>
+        </div>
+    </aside>
+
+    <!-- PANEL GŁÓWNY -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative z-0">
+        
+        <div v-if="selectedDino && selectedDino.baseLines" class="w-full h-full flex flex-col overflow-y-auto custom-scrollbar pr-3 pb-4">
+            
+            <!-- Nagłówek Dinozaura -->
+            <div class="tek-border bg-[#111827] p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center md:items-end gap-5 shrink-0 mb-5 relative overflow-hidden">
+                <div class="absolute right-0 top-0 w-48 h-48 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="flex items-center gap-6 relative z-10 w-full md:w-auto">
+                    <div class="w-28 h-28 bg-[#0a0e17] rounded-2xl border-2 border-cyan-500/30 flex items-center justify-center p-3 shadow-[0_0_20px_rgba(0,240,255,0.1)]">
+                        <img :src="selectedDino.img" class="w-full h-full object-contain brightness-0 invert drop-shadow-[0_0_10px_rgba(0,240,255,0.4)]" onerror="this.src='https://placehold.co/150x150/transparent/fff?text=?'">
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="px-2.5 py-1 bg-purple-900/40 border border-purple-500/50 text-purple-400 text-[11px] font-bold uppercase tracking-widest rounded">{{ selectedDino.variant }}</span>
+                            <span class="px-2.5 py-1 bg-gray-800 border border-gray-600 text-gray-300 text-[11px] font-bold uppercase tracking-widest rounded flex items-center gap-1.5">
+                                <i :data-lucide="getCategoryIcon(selectedDino.category)" class="w-3.5 h-3.5"></i> {{ translateCat(selectedDino.category) }}
+                            </span>
+                        </div>
+                        <h2 class="text-4xl md:text-5xl font-black tracking-wider text-white uppercase">{{ selectedDino.name }}</h2>
+                    </div>
+                </div>
+
+                <div class="text-center md:text-right bg-[#0a0e17] p-4 rounded-xl border border-cyan-500/20 min-w-[160px] shadow-inner relative z-10">
+                    <p class="text-[11px] text-gray-500 uppercase font-bold tracking-widest mb-1.5">Poziom Całkowity</p>
+                    <div class="text-5xl md:text-6xl font-black text-cyan-400 tek-glow leading-none">{{ totalLevel }}</div>
+                </div>
+            </div>
+
+            <!-- Konfigurator -->
+            <div class="flex flex-col xl:flex-row gap-5 flex-1">
+                
+                <div class="xl:w-[65%] flex flex-col gap-5">
+                    <!-- KROK 1 -->
+                    <div class="tek-border bg-[#111827] p-6 rounded-2xl shadow-lg">
+                        <h3 class="text-base text-white font-black uppercase tracking-widest mb-5 flex items-center gap-2.5 border-b border-gray-800 pb-3">
+                            <span class="w-7 h-7 rounded bg-cyan-900/50 border border-cyan-500/50 text-cyan-400 flex items-center justify-center text-xs font-black">1</span>
+                            Wybierz Linię Bazową
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button v-for="(line, index) in selectedDino.baseLines" :key="index" @click="selectBaseLine(line)"
+                                :class="['p-5 rounded-xl border text-left transition-all relative overflow-hidden', selectedLine?.name === line.name ? 'border-cyan-500 bg-[#0a0e17] shadow-[0_0_15px_rgba(0,240,255,0.15)]' : 'border-gray-700 bg-[#0a0e17]/50 hover:border-gray-500 hover:bg-[#0a0e17]/80']">
+                                <div class="font-black text-white text-lg tracking-wide mb-1.5">{{ line.name }}</div>
+                                <div class="flex justify-between items-center mt-4">
+                                    <span class="text-gray-500 text-[11px] font-black tracking-widest uppercase">Baza: <span class="text-white">{{ getCalculatedBaseLvl(line) }} LVL</span></span>
+                                    
+                                    <span :class="getRelativePriceClass(getRelativeLinePrice(line))" class="text-[11px] font-black tracking-widest uppercase">
+                                        {{ formatRelativePrice(getRelativeLinePrice(line)) }}
+                                    </span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KROK 2 -->
+                    <div v-if="hasAvailableMutations(selectedDino)" class="tek-border bg-[#111827] p-6 rounded-2xl flex-1 shadow-lg">
+                        <h3 class="text-base text-white font-black uppercase tracking-widest mb-5 flex items-center gap-2.5 border-b border-gray-800 pb-3">
+                            <span class="w-7 h-7 rounded bg-purple-900/50 border border-purple-500/50 text-purple-400 flex items-center justify-center text-xs font-black">2</span>
+                            Modyfikacja Genetyczna (Mutacje)
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div v-for="stat in ['hp', 'stam', 'ox', 'food', 'weight', 'dmg']" :key="stat" class="flex flex-col p-4 bg-[#0a0e17] rounded-xl border border-gray-800 hover:border-gray-700 transition-colors">
+                                
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded bg-gray-800/50 flex items-center justify-center border border-gray-700/50">
+                                            <img :src="getStatImg(stat)" class="w-4 h-4 object-contain" alt="">
+                                        </div>
+                                        <span class="text-sm font-black uppercase tracking-widest text-white">{{ translateStat(stat) }}</span>
+                                    </div>
+                                    <div class="text-[10px] font-black text-gray-500 uppercase tracking-widest bg-gray-900/50 px-2.5 py-1 rounded border border-gray-800">
+                                        Baza: <span class="text-white text-xs">{{ selectedLine?.stats[stat] || 0 }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-2.5 justify-between">
+                                    <button v-for="val in [0, 98, 255]" :key="val" 
+                                        :disabled="val !== 0 && val > getMaxAllowedMut(stat)"
+                                        @click="setMutation(stat, val)"
+                                        :class="[
+                                            'btn-mutation py-2 rounded-lg border text-sm font-black flex-1 text-center tracking-wider', 
+                                            currentMutations[stat] === val ? 'active border-cyan-500 bg-cyan-900/20 text-cyan-400' : 'border-gray-700 bg-gray-800/40 text-gray-500 hover:bg-gray-800 hover:text-white',
+                                            (val !== 0 && val > getMaxAllowedMut(stat)) ? 'opacity-20 grayscale cursor-not-allowed pointer-events-none' : ''
+                                        ]">
+                                        +{{ val }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="tek-border bg-[#111827] p-6 rounded-2xl flex-1 flex flex-col items-center justify-center opacity-40">
+                        <i data-lucide="shield-off" class="w-12 h-12 mb-3"></i>
+                        <h4 class="text-lg font-black uppercase tracking-widest text-white">Brak Możliwości Mutacji</h4>
+                        <p class="text-xs mt-1 text-gray-400">Dla tej linii genetycznej nie przewidziano modyfikacji.</p>
+                    </div>
+                </div>
+
+                <!-- PRAWA STRONA -->
+                <div class="xl:w-[35%] flex flex-col gap-5">
+                    <div class="tek-border bg-gradient-to-b from-[#111827] to-[#0a0e17] p-6 rounded-2xl sticky top-0 flex flex-col h-full shadow-2xl">
+                        
+                        <div class="mb-5">
+                            <div v-if="pricingStatus.type === 'fixed'" class="bg-[#111827] border border-emerald-500/30 p-4 rounded-xl flex flex-col items-center text-center shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">Stała Oferta Sklepu</span>
+                                <span class="text-[11px] font-bold text-gray-400">Szybka realizacja. Odbiór w 1h-24h.</span>
+                            </div>
+                            <div v-else class="bg-[#111827] border border-amber-500/30 p-4 rounded-xl flex flex-col items-center text-center shadow-[0_0_15px_rgba(245,158,11,0.05)]">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1">Tylko Na Zamówienie</span>
+                                <span class="text-[11px] font-bold text-gray-400">Wariant spoza stałej oferty. Czas ustalany indywidualnie.</span>
+                            </div>
+                        </div>
+
+                        <!-- TABELA STATYSTYK BAZA | MUT | SUMA -->
+                        <h3 class="text-[11px] text-white font-black uppercase tracking-widest mb-3 border-b border-gray-800 pb-2">Finalne Statystyki</h3>
+                        <div class="space-y-1.5 mb-5 bg-[#0a0e17] p-3 rounded-xl border border-gray-800/50">
+                            <div v-for="stat in ['hp', 'stam', 'ox', 'food', 'weight', 'dmg']" :key="'final-'+stat" 
+                                class="flex justify-between items-center py-1 border-b border-gray-800/50 last:border-0">
+                                <div class="flex items-center gap-2">
+                                    <img :src="getStatImg(stat)" class="w-3.5 h-3.5 object-contain opacity-70" alt="">
+                                    <span class="text-[11px] text-gray-400 font-black uppercase tracking-widest">{{ translateStat(stat) }}</span>
+                                </div>
+                                <div class="flex gap-2.5 text-[11px] font-mono items-center">
+                                    <span class="text-gray-500 text-right w-6">{{ selectedLine?.stats[stat] || 0 }}</span>
+                                    <span class="text-gray-700">|</span>
+                                    <span class="text-purple-400 text-center w-8 font-bold">+{{ currentMutations[stat] || 0 }}</span>
+                                    <span class="text-gray-700">|</span>
+                                    <span class="text-cyan-400 font-black text-right w-8">{{ getFinalStat(stat) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TABELA KOSZTÓW -->
+                        <div class="bg-[#0a0e17] rounded-xl p-4 border border-gray-800/50 mb-auto">
+                            <div class="flex justify-between items-center" :class="{'mb-2.5': hasAvailableMutations(selectedDino) && totalMutations > 0}">
+                                <span class="text-gray-500 text-[10px] uppercase font-black tracking-widest">Linia</span>
+                                <span class="text-white text-sm font-bold">{{ getLineBasePrice(selectedLine, selectedDino) }} DD</span>
+                            </div>
+                            <div v-if="hasAvailableMutations(selectedDino) && totalMutations > 0" class="flex justify-between items-center pt-2.5 border-t border-gray-800/50">
+                                <span class="text-gray-500 text-[10px] uppercase font-black tracking-widest">Genetyka</span>
+                                <span class="text-purple-400 text-sm font-bold">
+                                    {{ apiPrice.loading && isCustomOrder ? '...' : getGeneticsPrice() }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Do Zapłaty -->
+                        <div class="pt-5 text-center mt-3 border-t border-gray-800">
+                            <p class="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mb-1.5">Do zapłaty</p>
+                            
+                            <template v-if="pricingStatus.type === 'fixed'">
+                                <div class="text-5xl font-black text-cyan-400 tek-glow mb-4">{{ pricingStatus.exactPrice }} <span class="text-lg text-gray-500 font-bold">DD</span></div>
+                            </template>
+                            
+                            <!-- PODŁĄCZENIE API -->
+                            <template v-else>
+                                <div v-if="apiPrice.loading" class="text-2xl font-black text-amber-400/50 mb-5 animate-pulse pt-2">Liczę . . .</div>
+                                <div v-else class="relative">
+                                    <div class="text-base font-black text-gray-400 mb-1">Min. <span class="text-white">{{ apiPrice.min }} DD</span></div>
+                                    <div class="text-4xl font-black text-amber-400 tek-glow mb-3 shadow-amber-500">{{ apiPrice.sug }} <span class="text-sm text-gray-500 font-bold">DD</span></div>
+                                    
+                                    <div class="bg-amber-900/20 border border-amber-500/30 p-2.5 rounded-lg mb-4 text-left flex items-start gap-2 shadow-[0_0_10px_rgba(245,158,11,0.05)]">
+                                        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"></i>
+                                        <p class="text-[9px] text-amber-400 uppercase font-bold tracking-widest leading-tight">Powyższa kwota to jedynie szacunkowa wycena kalkulatora regulaminowego. Ostateczną cenę ustala sprzedawca!</p>
+                                    </div>
+                                </div>
+                            </template>
+                            
+                            <div v-if="needsNeutering" class="mb-4 bg-[#0a0e17] border border-red-500/30 py-2 rounded-lg text-center flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                                <i data-lucide="scissors" class="w-3.5 h-3.5 text-red-500"></i>
+                                <p class="text-[10px] text-red-500 font-black uppercase tracking-widest">Kastrat (Wymóg Regulaminu)</p>
+                            </div>
+
+                            <button @click="copyOrder" :disabled="isCustomOrder && apiPrice.loading" class="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-[#0a0e17] rounded-xl font-black uppercase tracking-[0.2em] text-base transition-all shadow-[0_0_20px_rgba(0,240,255,0.2)] hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i data-lucide="clipboard-copy" class="w-5 h-5"></i> Generuj Zamówienie
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-else-if="selectedDino && (!selectedDino.baseLines || selectedDino.baseLines.length === 0)" class="w-full h-full flex flex-col items-center justify-center p-8 text-center">
+            <i data-lucide="wrench" class="w-16 h-16 text-gray-600 mb-4"></i>
+            <h2 class="text-3xl font-black text-white uppercase tracking-widest mb-2">Brak Konfiguracji</h2>
+            <p class="text-sm text-gray-400">Ten dinozaur został wczytany, ale nie wygenerowano dla niego linii bazowych w database.js.</p>
+        </div>
+        
+        <!-- Ekran Powitalny -->
+        <div v-else class="w-full h-full flex flex-col items-center justify-center p-6 text-center relative">
+            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/10 via-[#0a0e17] to-[#0a0e17] pointer-events-none"></div>
+            <div class="max-w-2xl relative z-10">
+                <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mx-auto mb-6 shadow-[0_0_40px_rgba(0,240,255,0.2)] rotate-3">
+                    <img src="https://placehold.co/100x100/transparent/fff?text=B2K" class="w-14 h-14 object-contain invert">
+                </div>
+                <h2 class="text-5xl md:text-6xl font-black text-white uppercase tracking-widest mb-4 tek-glow">B2K SHOP</h2>
+                <p class="text-xs text-cyan-100/60 mb-12 font-medium tracking-wide uppercase">Zaawansowana Inżynieria Genetyczna</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
+                    <div class="bg-[#111827] border border-gray-800/50 p-6 rounded-xl">
+                        <h4 class="text-cyan-400 font-black uppercase tracking-widest text-[11px] mb-2.5">1. Wybierz Gatunek</h4>
+                        <p class="text-[11px] text-gray-500 font-medium">Użyj panelu wyszukiwania po lewej stronie.</p>
+                    </div>
+                    <div class="bg-[#111827] border border-gray-800/50 p-6 rounded-xl">
+                        <h4 class="text-purple-400 font-black uppercase tracking-widest text-[11px] mb-2.5">2. Skonfiguruj Genom</h4>
+                        <p class="text-[11px] text-gray-500 font-medium">Wybierz bazową linię krwi i dodaj mutacje.</p>
+                    </div>
+                    <div class="bg-[#111827] border border-gray-800/50 p-6 rounded-xl">
+                        <h4 class="text-emerald-400 font-black uppercase tracking-widest text-[11px] mb-2.5">3. Złóż Zamówienie</h4>
+                        <p class="text-[11px] text-gray-500 font-medium">Skopiuj zamówienie i prześlij na Discordzie.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</div>
+
+<script>
+    const { createApp, ref, computed, watch, nextTick } = Vue;
+
+    createApp({
+        setup() {
+            const database = ref(typeof DINO_DATABASE !== 'undefined' ? DINO_DATABASE : []);
+            const selectedDino = ref(null);
+            const selectedLine = ref(null);
+            
+            const searchQuery = ref('');
+            const maxPriceFilter = ref(30000);
+            const selectedCategory = ref('all');
+            const showOnlyMutated = ref(false);
+            const sortBy = ref('name');
+            const sortDesc = ref(false);
+            
+            const mutationsMemory = ref({});
+            
+            const apiCache = ref({});
+            const apiPrice = ref({ min: 0, sug: 0, loading: false });
+            let apiTimeout = null;
+
+            const statEmojis = { hp: '❤️', stam: '⚡', ox: '💧', food: '🍖', weight: '⚖️', dmg: '⚔️' };
+            const statMap = { hp: 1, stam: 2, food: 3, weight: 4, dmg: 5, ox: 6 }; 
+            const idxMap = { hp: 0, stam: 1, ox: 2, food: 3, weight: 4, dmg: 5 };
+
+            const memoryKey = computed(() => {
+                if(!selectedDino.value || !selectedLine.value) return null;
+                return `${selectedDino.value.id}_${selectedLine.value.name}`;
+            });
+
+            const currentMutations = computed(() => {
+                if (!memoryKey.value) return {};
+                return mutationsMemory.value[memoryKey.value] || {};
+            });
+
+            const hasAvailableMutations = (dino) => {
+                if (!dino || !dino.baseLines) return false;
+                return dino.baseLines.some(line => {
+                    if(!line.customVariants) return false;
+                    return Object.keys(line.customVariants).some(k => k !== '0-0-0-0-0-0');
+                });
+            };
+
+            const getMinPrice = (dino) => {
+                if (!dino.baseLines || dino.baseLines.length === 0) return dino.baseCost;
+                const minLineMod = Math.min(...dino.baseLines.map(line => line.customVariants?.['0-0-0-0-0-0'] ?? dino.baseCost));
+                return minLineMod;
+            };
+
+            const toggleSort = (type) => {
+                if (sortBy.value === type) { sortDesc.value = !sortDesc.value; } 
+                else { sortBy.value = type; sortDesc.value = false; }
+            };
+
+            const getCalculatedBaseLvl = (line) => {
+                if(!line || !line.stats) return 1;
+                const s = line.stats;
+                return 1 + (s.hp||0) + (s.stam||0) + (s.ox||0) + (s.food||0) + (s.weight||0) + (s.dmg||0);
+            };
+
+            const filteredDatabase = computed(() => {
+                let result = database.value.filter(dino => {
+                    if (!dino.baseLines || dino.baseLines.length === 0) return false;
+
+                    const matchesSearch = dino.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
+                                          (dino.variant && dino.variant.toLowerCase().includes(searchQuery.value.toLowerCase()));
+                    const matchesPrice = getMinPrice(dino) <= maxPriceFilter.value || maxPriceFilter.value === 30000;
+                    const matchesCat = selectedCategory.value === 'all' || dino.category === selectedCategory.value;
+                    const matchesMut = showOnlyMutated.value ? hasAvailableMutations(dino) : true;
+                    return matchesSearch && matchesPrice && matchesCat && matchesMut;
+                });
+
+                result.sort((a, b) => {
+                    let valA, valB;
+                    if (sortBy.value === 'name') { valA = a.name; valB = b.name; }
+                    else if (sortBy.value === 'price') { valA = getMinPrice(a); valB = getMinPrice(b); }
+                    else if (sortBy.value === 'level') { valA = getCalculatedBaseLvl(a.baseLines[0]); valB = getCalculatedBaseLvl(b.baseLines[0]); }
+                    
+                    if (valA < valB) return sortDesc.value ? 1 : -1;
+                    if (valA > valB) return sortDesc.value ? -1 : 1;
+                    return 0;
+                });
+
+                return result;
+            });
+
+            const getMaxAllowedMut = (statName) => {
+                if (!selectedLine.value || !selectedLine.value.customVariants) return 0;
+                let max = 0;
+                const idx = idxMap[statName];
+                
+                Object.keys(selectedLine.value.customVariants).forEach(key => {
+                    const parts = key.split('-');
+                    if (parts.length === 6) {
+                        const val = parseInt(parts[idx]) || 0;
+                        if (val > max) max = val;
+                    }
+                });
+                return max;
+            };
+
+            const getLineBasePrice = (line, dino) => {
+                if(!line || !dino) return 0;
+                return line.customVariants?.['0-0-0-0-0-0'] ?? dino.baseCost;
+            };
+
+            const getRelativeLinePrice = (line) => {
+                if(!selectedLine.value || !selectedDino.value) return 0;
+                return getLineBasePrice(line, selectedDino.value) - getLineBasePrice(selectedLine.value, selectedDino.value);
+            };
+
+            const formatRelativePrice = (diff) => {
+                if(diff > 0) return `+${diff} DD`;
+                if(diff < 0) return `${diff} DD`;
+                return `0 DD`;
+            };
+
+            const getRelativePriceClass = (diff) => {
+                if(diff > 0) return 'text-red-400 bg-red-900/20 px-2 py-0.5 rounded';
+                if(diff < 0) return 'text-green-400 bg-green-900/20 px-2 py-0.5 rounded';
+                return 'text-gray-500';
+            };
+
+            const selectBaseLine = (line) => { 
+                selectedLine.value = line; 
+                const key = `${selectedDino.value.id}_${line.name}`;
+                if (!mutationsMemory.value[key]) {
+                    mutationsMemory.value[key] = { hp: 0, stam: 0, ox: 0, food: 0, weight: 0, dmg: 0 };
+                } else {
+                    Object.keys(idxMap).forEach(stat => {
+                        const maxAllowed = getMaxAllowedMut(stat);
+                        if(mutationsMemory.value[key][stat] > maxAllowed) {
+                            mutationsMemory.value[key][stat] = 0;
+                        }
+                    });
+                }
+            };
+
+            const selectDino = (dino) => {
+                selectedDino.value = dino;
+                if (dino.baseLines && dino.baseLines.length > 0) {
+                    selectBaseLine(dino.baseLines[0]);
+                }
+            };
+
+            const setMutation = (stat, value) => { 
+                if (memoryKey.value) mutationsMemory.value[memoryKey.value][stat] = value; 
+            };
+
+            const totalMutations = computed(() => {
+                if(!selectedDino.value) return 0;
+                return Object.values(currentMutations.value).reduce((sum, val) => sum + val, 0);
+            });
+
+            const totalLevel = computed(() => {
+                if(!selectedLine.value) return 0;
+                return getCalculatedBaseLvl(selectedLine.value) + totalMutations.value;
+            });
+
+            const pricingStatus = computed(() => {
+                if (!selectedDino.value || !selectedLine.value) return { type: 'unknown' };
+                
+                const m = currentMutations.value;
+                const mutationCode = `${m.hp}-${m.stam}-${m.ox}-${m.food}-${m.weight}-${m.dmg}`;
+                const exactPrice = selectedLine.value.customVariants?.[mutationCode];
+
+                if (exactPrice !== undefined) {
+                    return { type: 'fixed', exactPrice: exactPrice };
+                } else {
+                    return { type: 'api' };
+                }
+            });
+
+            const isCustomOrder = computed(() => pricingStatus.value.type !== 'fixed');
+
+            const fetchApiPrice = () => {
+                clearTimeout(apiTimeout);
+                
+                const payloadObj = {
+                    dino_price_shop: String(getLineBasePrice(selectedLine.value, selectedDino.value)),
+                    dino_lvl: String(totalLevel.value),
+                    dino_traits_1: String(currentMutations.value.hp || 0),
+                    dino_traits_2: String(currentMutations.value.stam || 0),
+                    dino_traits_3: String(currentMutations.value.food || 0),
+                    dino_traits_4: String(currentMutations.value.weight || 0),
+                    dino_traits_5: String(currentMutations.value.dmg || 0),
+                    dino_traits_6: String(currentMutations.value.ox || 0),
+                    dino_price_min: "Liczę . . .",
+                    dino_price_sugested: "Liczę . . ."
+                };
+
+                const cacheKey = JSON.stringify(payloadObj);
+                
+                if (apiCache.value[cacheKey]) {
+                    apiPrice.value.min = apiCache.value[cacheKey].min;
+                    apiPrice.value.sug = apiCache.value[cacheKey].sug;
+                    apiPrice.value.loading = false;
+                    return;
+                }
+
+                apiPrice.value.loading = true;
+                
+                apiTimeout = setTimeout(async () => {
+                    try {
+                        const params = new URLSearchParams();
+                        params.append('arksa_calc', JSON.stringify(payloadObj));
+
+                        const res = await fetch("https://green-wildflower-8204.rypnickipiotr.workers.dev/", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                                "Accept": "application/json, text/javascript, */*; q=0.01"
+                            },
+                            body: params.toString()
+                        });
+
+                        const rawText = await res.text();
+                        let data = JSON.parse(rawText);
+                        if (typeof data === 'string') data = JSON.parse(data);
+                        
+                        apiPrice.value.min = data.dino_price_min || "Błąd";
+                        apiPrice.value.sug = data.dino_price_sugested || "Błąd";
+                        apiCache.value[cacheKey] = { min: data.dino_price_min, sug: data.dino_price_sugested };
+                        
+                    } catch(e) {
+                        console.error("API Error:", e);
+                        apiPrice.value.min = "Błąd";
+                        apiPrice.value.sug = "Błąd";
+                    } finally {
+                        apiPrice.value.loading = false;
+                    }
+                }, 300);
+            };
+
+            watch([selectedDino, selectedLine, currentMutations], () => {
+                if (pricingStatus.value.type === 'api') {
+                    fetchApiPrice();
+                }
+            }, { deep: true });
+
+            const getGeneticsPrice = () => {
+                if(pricingStatus.value.type === 'fixed') {
+                    const diff = pricingStatus.value.exactPrice - getLineBasePrice(selectedLine.value, selectedDino.value);
+                    return `+${diff} DD`;
+                } else {
+                    return "Do wyceny";
+                }
+            };
+
+            const needsNeutering = computed(() => {
+                if(!selectedDino.value) return false;
+                return Object.values(currentMutations.value).some(val => Number(val) >= 100);
+            });
+
+            const getFinalStat = (stat) => {
+                const base = selectedLine.value?.stats[stat] || 0;
+                const mut = currentMutations.value[stat] || 0;
+                return base + mut;
+            };
+
+            const translateStat = (stat) => {
+                const map = { hp: 'Życie', stam: 'Stamina', ox: 'Tlen', food: 'Jedzenie', weight: 'Waga', dmg: 'Obrażenia' };
+                return map[stat] || stat;
+            };
+
+            const translateCat = (cat) => {
+                const map = { bojowe: 'Bojowy', uzytkowe: 'Użytkowy', latajace: 'Latający', wodne: 'Wodny', towarzysze: 'Towarzysz' };
+                return map[cat] || cat;
+            };
+
+            const getStatImg = (stat) => {
+                const map = { 
+                    hp: 'stats/Health.webp', stam: 'stats/Stamina.webp', ox: 'stats/O2.webp', 
+                    food: 'stats/Food.webp', weight: 'stats/Weight.webp', dmg: 'stats/Melee.webp' 
+                };
+                return map[stat] || '';
+            };
+
+            const getCategoryIcon = (cat) => {
+                const map = { bojowe: 'swords', uzytkowe: 'pickaxe', latajace: 'wind', wodne: 'waves', towarzysze: 'heart', all: 'layers' };
+                return map[cat] || 'box';
+            };
+
+            const copyOrder = () => {
+                let finalStatsString = "";
+                ['hp', 'stam', 'ox', 'food', 'weight', 'dmg'].forEach(stat => {
+                    const baseVal = selectedLine.value.stats[stat] || 0;
+                    const mutVal = currentMutations.value[stat] || 0;
+                    const finalVal = baseVal + mutVal;
+                    finalStatsString += `${statEmojis[stat]} ${translateStat(stat).padEnd(9, ' ')} | Baza: ${String(baseVal).padStart(3, ' ')} | Mut: +${String(mutVal).padStart(3, ' ')} | Suma: ${finalVal}\n`;
+                });
+
+                const priceText = pricingStatus.value.type === 'fixed' 
+                    ? `${pricingStatus.value.exactPrice} DD` 
+                    : `Szacunkowo ${apiPrice.value.min} - ${apiPrice.value.sug} DD (Ostateczna wycena u sprzedawcy)`;
+
+                const text = `==== ZAMÓWIENIE B2K SHOP ====\n` +
+                             `Dinozaur: ${selectedDino.value.name} [${selectedDino.value.variant}]\n` +
+                             `Linia Hodowlana: ${selectedLine.value.name}\n` +
+                             `Typ Zamówienia: ${isCustomOrder.value ? 'Wariant spoza stałej oferty. Czas realizacji ustalany indywidualnie.' : 'Szybka realizacja (1h-24h)'}\n` +
+                             `Poziom Całkowity: ${totalLevel.value} LVL\n` +
+                             `Cena: ${priceText}\n` +
+                             `Kastrat: ${needsNeutering.value ? 'TAK (Wymuszone regulaminem)' : 'NIE'}\n\n` +
+                             `-- FINALNE STATYSTYKI --\n${finalStatsString}`;
+
+                navigator.clipboard.writeText(text);
+                alert("Pomyślnie wygenerowano i skopiowano zamówienie do schowka!");
+            };
+
+            return {
+                database, filteredDatabase, selectedDino, selectedLine, currentMutations, 
+                searchQuery, maxPriceFilter, selectedCategory, showOnlyMutated, sortBy, sortDesc,
+                selectDino, selectBaseLine, setMutation, toggleSort, getMaxAllowedMut, hasAvailableMutations,
+                getLineBasePrice, getRelativeLinePrice, formatRelativePrice, getRelativePriceClass, getGeneticsPrice,
+                translateStat, translateCat, getStatImg, getCategoryIcon, getMinPrice, getFinalStat, getCalculatedBaseLvl,
+                totalLevel, totalMutations, pricingStatus, apiPrice, needsNeutering, isCustomOrder, copyOrder
+            };
+        },
+        updated() { if (typeof lucide !== 'undefined') lucide.createIcons(); },
+        mounted() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
+    }).mount('#app');
+</script>
+</body>
+</html>
